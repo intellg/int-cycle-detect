@@ -1,4 +1,4 @@
-package bench
+package len_range
 
 import "testing"
 
