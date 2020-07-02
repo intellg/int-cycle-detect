@@ -88,9 +88,7 @@ func (instance *Node) adjustOverflow(tree *Tree) {
 	newNode.SetKeys(instance.Keys[mid+1:]...)
 	if instance.Children != nil {
 		children := make([]*Node, tree.M-mid+1)
-		for i := mid; i <= tree.M; i++ {
-			children[i-mid] = instance.Children[i]
-		}
+		copy(children, instance.Children[mid:])
 		newNode.SetChildren(children)
 	}
 
@@ -230,20 +228,16 @@ func (instance *Node) borrowFromBrother(brother *Node, currentIndex, parentIndex
 	}
 }
 
-func insertInt(arr []int, index, key int) []int {
-	arr = append(arr, arr[len(arr)-1])
-	for i := len(arr) - 2; i > index; i-- {
-		arr[i] = arr[i-1]
-	}
-	arr[index] = key
+func insertInt(arr []int, index, item int) []int {
+	arr = append(arr, 0)
+	copy(arr[index+1:], arr[index:])
+	arr[index] = item
 	return arr
 }
 
 func insertNode(arr []*Node, index int, item *Node) []*Node {
-	arr = append(arr, arr[len(arr)-1])
-	for i := len(arr) - 2; i > index; i-- {
-		arr[i] = arr[i-1]
-	}
+	arr = append(arr, nil)
+	copy(arr[index+1:], arr[index:])
 	arr[index] = item
 	return arr
 }
