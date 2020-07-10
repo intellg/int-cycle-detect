@@ -33,3 +33,13 @@ func BenchmarkHeapSort(b *testing.B) {
 		heapSort(actualTestItem)
 	}
 }
+
+func BenchmarkQuickSort(b *testing.B) {
+	actualTestItem := make([]int, length)
+	copy(actualTestItem, testItem)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		quickSort(actualTestItem)
+	}
+}

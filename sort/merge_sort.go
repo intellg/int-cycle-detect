@@ -1,8 +1,8 @@
 package sort
 
-func mergeSort(nums []int) ([]int, int) {
+func mergeSort(nums []int) (counter int) {
 	if len(nums) == 1 {
-		return nums, 0
+		return
 	}
 
 	mid := len(nums) / 2
@@ -10,31 +10,31 @@ func mergeSort(nums []int) ([]int, int) {
 	copy(numsL, nums[:mid])
 	numsR := make([]int, len(nums)-mid)
 	copy(numsR, nums[mid:])
-	sortedL, counterL := mergeSort(numsL)
-	sortedR, counterR := mergeSort(numsR)
-	counter := counterL + counterR
+	counterL := mergeSort(numsL)
+	counterR := mergeSort(numsR)
+	counter = counterL + counterR
 
 	i := 0
 	j := 0
 	k := 0
-	for i < len(sortedL) && j < len(sortedR) {
-		if sortedL[i] <= sortedR[j] {
-			nums[k] = sortedL[i]
+	for i < len(numsL) && j < len(numsR) {
+		if numsL[i] <= numsR[j] {
+			nums[k] = numsL[i]
 			counter++
 			i++
 		} else {
-			nums[k] = sortedR[j]
+			nums[k] = numsR[j]
 			counter++
 			j++
 		}
 		k++
 	}
 
-	if i == len(sortedL) { // sortedR has remaining data
-		counter += copy(nums[k:], sortedR[j:])
+	if i == len(numsL) { // sortedR has remaining data
+		counter += copy(nums[k:], numsR[j:])
 	} else { // sortedL has remaining data
-		counter += copy(nums[k:], sortedL[i:])
+		counter += copy(nums[k:], numsL[i:])
 	}
 
-	return nums, counter
+	return counter
 }

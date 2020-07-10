@@ -37,8 +37,7 @@ func maxHeapify(A []int, i int) (counter int) {
 
 	if largest != i {
 		exchange(A, i, largest)
-		counter++
-		maxHeapify(A, largest)
+		counter += maxHeapify(A, largest) + 1
 	}
 	return
 }
