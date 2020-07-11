@@ -1,27 +1,12 @@
 package sort
 
 import (
-	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 )
-
-const length = 10000
-
-var testItem = make([]int, length)
-
-func init() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < length; i++ {
-		testItem[i] = r.Intn(length << 6)
-	}
-	fmt.Println("Prepared")
-}
 
 func TestInsertionSort(t *testing.T) {
 	actualTestItem := make([]int, length)
-	copy(actualTestItem, testItem)
+	copy(actualTestItem, testItems[0])
 
 	counter := insertionSort(actualTestItem)
 	t.Log(counter)
@@ -31,7 +16,7 @@ func TestInsertionSort(t *testing.T) {
 
 func TestMergeSort(t *testing.T) {
 	actualTestItem := make([]int, length)
-	copy(actualTestItem, testItem)
+	copy(actualTestItem, testItems[0])
 
 	counter := mergeSort(actualTestItem)
 	t.Log(counter)
@@ -41,7 +26,7 @@ func TestMergeSort(t *testing.T) {
 
 func TestHeapSort(t *testing.T) {
 	actualTestItem := make([]int, length)
-	copy(actualTestItem, testItem)
+	copy(actualTestItem, testItems[0])
 
 	counter := heapSort(actualTestItem)
 	t.Log(counter)
@@ -51,7 +36,7 @@ func TestHeapSort(t *testing.T) {
 
 func TestQuickSort(t *testing.T) {
 	actualTestItem := make([]int, length)
-	copy(actualTestItem, testItem)
+	copy(actualTestItem, testItems[0])
 
 	counter := quickSort(actualTestItem)
 	t.Log(counter)
