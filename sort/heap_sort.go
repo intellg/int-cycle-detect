@@ -17,44 +17,44 @@ func parent(i int) int { // This function is not used in heapSort()
 	return i
 }
 
-func exchange(A []int, from, to int) {
-	temp := A[from]
-	A[from] = A[to]
-	A[to] = temp
+func exchange(nums []int, from, to int) {
+	temp := nums[from]
+	nums[from] = nums[to]
+	nums[to] = temp
 }
 
-func maxHeapify(A []int, i int) (counter int) {
-	l := left(i)
-	r := right(i)
-	largest := i
+func maxHeapify(nums []int, index int) (counter int) {
+	l := left(index)
+	r := right(index)
+	largest := index
 
-	if l < len(A) && A[l] > A[i] {
+	if l < len(nums) && nums[l] > nums[largest] {
 		largest = l
 	}
-	if r < len(A) && A[r] > A[largest] {
+	if r < len(nums) && nums[r] > nums[largest] {
 		largest = r
 	}
 
-	if largest != i {
-		exchange(A, i, largest)
-		counter += maxHeapify(A, largest) + 1
+	if largest != index {
+		exchange(nums, index, largest)
+		counter += maxHeapify(nums, largest) + 1
 	}
 	return
 }
 
-func heapSort(A []int) (counter int) {
-	length := len(A)
+func HeapSort(nums []int) (counter int) {
+	length := len(nums)
 
-	for i := len(A) / 2; i >= 0; i-- {
-		counter += maxHeapify(A, i)
+	for i := len(nums) / 2; i >= 0; i-- {
+		counter += maxHeapify(nums, i)
 	}
 
-	for i := len(A) - 1; i > 0; i-- {
-		exchange(A, 0, i)
-		A = A[:len(A)-1]
-		counter += maxHeapify(A, 0) + 1
+	for i := len(nums) - 1; i > 0; i-- {
+		exchange(nums, 0, i)
+		nums = nums[:len(nums)-1]
+		counter += maxHeapify(nums, 0) + 1
 	}
 
-	A = A[:length]
+	nums = nums[:length]
 	return
 }

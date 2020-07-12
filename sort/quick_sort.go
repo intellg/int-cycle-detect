@@ -1,31 +1,31 @@
 package sort
 
-func quickSort(A []int) int {
-	return innerQuickSort(A, 0, len(A)-1)
+func QuickSort(nums []int) int {
+	return innerQuickSort(nums, 0, len(nums)-1)
 }
 
-func innerQuickSort(A []int, p, r int) (counter int) {
-	if p < r {
-		q, c := partition(A, p, r)
-		counter = c
-		counter += innerQuickSort(A, p, q-1)
-		counter += innerQuickSort(A, q+1, r)
+func innerQuickSort(nums []int, from, to int) (counter int) {
+	if from < to {
+		var div int
+		div, counter = partition(nums, from, to)
+		counter += innerQuickSort(nums, from, div-1)
+		counter += innerQuickSort(nums, div+1, to)
 	}
 	return
 }
 
-func partition(A []int, p, r int) (q, counter int) {
-	x := A[r]
-	q = p - 1
-	for j := p; j < r; j++ {
-		if A[j] <= x {
-			q++
-			exchange(A, q, j)
+func partition(nums []int, from, to int) (div, counter int) {
+	x := nums[to]
+	div = from - 1
+	for j := from; j < to; j++ {
+		if nums[j] <= x {
+			div++
+			exchange(nums, div, j)
 			counter++
 		}
 	}
-	q++
-	exchange(A, q, r)
+	div++
+	exchange(nums, div, to)
 	counter++
 	return
 }

@@ -1,6 +1,6 @@
 package sort
 
-func mergeSort(nums []int) (counter int) {
+func MergeSort(nums []int) (counter int) {
 	if len(nums) == 1 {
 		return
 	}
@@ -10,8 +10,8 @@ func mergeSort(nums []int) (counter int) {
 	copy(numsL, nums[:mid])
 	numsR := make([]int, len(nums)-mid)
 	copy(numsR, nums[mid:])
-	counterL := mergeSort(numsL)
-	counterR := mergeSort(numsR)
+	counterL := MergeSort(numsL)
+	counterR := MergeSort(numsR)
 	counter = counterL + counterR
 
 	i := 0

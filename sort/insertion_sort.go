@@ -1,6 +1,6 @@
 package sort
 
-func insertionSort(nums []int) (counter int) {
+func InsertionSort(nums []int) (counter int) {
 	for j := 1; j < len(nums); j++ {
 		key := nums[j]
 		// Insert A[j] into the sorted sequence A[1..j-1]
