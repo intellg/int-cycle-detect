@@ -7,29 +7,29 @@ type Node struct {
 	Parent   *Node   `json:"-"`
 }
 
-func (instance *Node) SetKeys(keys ...int) {
-	instance.Keys = make([]int, 1)
-	instance.Keys[0] = len(keys)
-	instance.Keys = append(instance.Keys, keys...)
+func (node *Node) SetKeys(keys ...int) {
+	node.Keys = make([]int, 1)
+	node.Keys[0] = len(keys)
+	node.Keys = append(node.Keys, keys...)
 }
 
-func (instance *Node) SetChildren(children []*Node) {
-	instance.Children = children
+func (node *Node) SetChildren(children []*Node) {
+	node.Children = children
 	for i, child := range children {
 		child.Index = i
 	}
 }
 
-func (instance *Node) GetLeftestLeafFrom(index int) *Node {
-	node := instance.Children[index]
-	for node.Children != nil {
-		node = node.Children[0]
+func (node *Node) GetLeftestLeafFrom(index int) *Node {
+	n := node.Children[index]
+	for n.Children != nil {
+		n = n.Children[0]
 	}
-	return node
+	return n
 }
 
-func (instance *Node) SearchKey(key int) (index, step int, ok bool) {
-	end := len(instance.Keys)
+func (node *Node) SearchKey(key int) (index, step int, ok bool) {
+	end := len(node.Keys)
 	if end <= 1 {
 		index = 1
 		return
@@ -51,80 +51,80 @@ func (instance *Node) SearchKey(key int) (index, step int, ok bool) {
 			previousMid = mid
 		}
 
-		if key == instance.Keys[index] {
+		if key == node.Keys[index] {
 			ok = true
 			return
-		} else if key < instance.Keys[index] {
+		} else if key < node.Keys[index] {
 			end = index
-		} else { // if key > instance.Keys[intMid]
+		} else { // if key > node.Keys[intMid]
 			start = index
 		}
 	}
 	return
 }
 
-func (instance *Node) AddKey(tree *Tree, index, key int, child *Node) {
-	instance.Keys = insertInt(instance.Keys, index, key)
-	instance.Keys[0] ++
+func (node *Node) AddKey(tree *Tree, index, key int, child *Node) {
+	node.Keys = insertInt(node.Keys, index, key)
+	node.Keys[0] ++
 
-	if instance.Children != nil {
-		for i := index; i < len(instance.Children); i++ {
-			instance.Children[i].Index++
+	if node.Children != nil {
+		for i := index; i < len(node.Children); i++ {
+			node.Children[i].Index++
 		}
-		instance.Children = insertNode(instance.Children, index, child)
-		child.Parent = instance
+		node.Children = insertNode(node.Children, index, child)
+		child.Parent = node
 		child.Index = index
 	}
 
-	if instance.Keys[0] == tree.M {
-		instance.adjustOverflow(tree)
+	if node.Keys[0] == tree.M {
+		node.adjustOverflow(tree)
 	}
 }
 
-func (instance *Node) adjustOverflow(tree *Tree) {
+func (node *Node) adjustOverflow(tree *Tree) {
 	// 0. Prepare necessary data
 	mid := tree.M/2 + 1
 	newNode := &Node{}
-	newNode.SetKeys(instance.Keys[mid+1:]...)
-	if instance.Children != nil {
+	newNode.SetKeys(node.Keys[mid+1:]...)
+	if node.Children != nil {
 		children := make([]*Node, tree.M-mid+1)
-		copy(children, instance.Children[mid:])
+		copy(children, node.Children[mid:])
 		newNode.SetChildren(children)
 	}
 
-	// 1. Handle parent instance
-	if instance.Parent != nil {
-		// Node instance.Keys[mid] is upgraded
-		instance.Parent.AddKey(tree, instance.Index+1, instance.Keys[mid], newNode)
+	// 1. Handle parent node
+	if node.Parent != nil {
+		// Node node.Keys[mid] is upgraded
+		node.Parent.AddKey(tree, node.Index+1, node.Keys[mid], newNode)
 	} else {
 		tree.Root = &Node{}
-		tree.Root.SetKeys(instance.Keys[mid])
-		tree.Root.SetChildren([]*Node{instance, newNode})
-		instance.Parent = tree.Root
+		tree.Root.SetKeys(node.Keys[mid])
+		tree.Root.SetChildren([]*Node{node, newNode})
+		node.Parent = tree.Root
 		newNode.Parent = tree.Root
 	}
 
-	// 2. Handle new instance
+	// 2. Handle new node
 	for _, child := range newNode.Children {
 		child.Parent = newNode
 	}
 
-	// 3. Handle instance instance
-	instance.Keys = instance.Keys[0:mid]
-	instance.Keys[0] = mid - 1
-	if instance.Children != nil {
-		instance.Children = instance.Children[0:mid]
+	// 3. Handle node node
+	node.Keys = node.Keys[0:mid]
+	node.Keys[0] = mid - 1
+	if node.Children != nil {
+		node.Children = node.Children[0:mid]
 	}
 }
 
-func (instance *Node) DeleteKey(tree *Tree, index int) {
-	deleteNode := instance
+func (node *Node) DeleteKey(tree *Tree, index int) {
+	deleteNode := node
 	deleteIndex := index
 
-	if instance.Children != nil {
+	if node.Children != nil {
 		// Change the key with the right child's smallest key
-		rightChildSmallestLeaf := instance.GetLeftestLeafFrom(index)
-		instance.Keys[index] = rightChildSmallestLeaf.Keys[1]
+		rightChildSmallestLeaf := node.GetLeftestLeafFrom(index)
+		node.Keys[index] = rightChildSmallestLeaf.Keys[1]
 		deleteNode = rightChildSmallestLeaf
 		deleteIndex = 1
 	}
@@ -137,11 +137,11 @@ func (instance *Node) DeleteKey(tree *Tree, index int) {
 	}
 }
 
-func (instance *Node) adjustUnderflow(tree *Tree) {
-	if instance.Parent == nil {
-		if instance.Keys[0] == 0 {
-			if instance.Children != nil {
-				tree.Root = instance.Children[0]
+func (node *Node) adjustUnderflow(tree *Tree) {
+	if node.Parent == nil {
+		if node.Keys[0] == 0 {
+			if node.Children != nil {
+				tree.Root = node.Children[0]
 				tree.Root.Index = -1
 				tree.Root.Parent = nil
 			}
@@ -149,18 +149,18 @@ func (instance *Node) adjustUnderflow(tree *Tree) {
 	}
 
 	// 0. Borrow from brother logic
-	leftNode := instance
-	rightNode := instance
-	if instance.Index > 0 { // Try to borrow from left
-		leftNode = instance.Parent.Children[instance.Index-1]
+	leftNode := node
+	rightNode := node
+	if node.Index > 0 { // Try to borrow from left
+		leftNode = node.Parent.Children[node.Index-1]
 		if leftNode.Keys[0] > tree.Underflow {
-			instance.borrowFromBrother(leftNode, 1, instance.Index, -1)
+			node.borrowFromBrother(leftNode, 1, node.Index, -1)
 			return
 		}
 	} else { // Try to borrow from right
-		rightNode = instance.Parent.Children[instance.Index+1]
+		rightNode = node.Parent.Children[node.Index+1]
 		if rightNode.Keys[0] > tree.Underflow {
-			instance.borrowFromBrother(rightNode, instance.Keys[0]+1, instance.Index+1, 1)
+			node.borrowFromBrother(rightNode, node.Keys[0]+1, node.Index+1, 1)
 			return
 		}
 	}
@@ -197,30 +197,30 @@ func (instance *Node) adjustUnderflow(tree *Tree) {
 	}
 }
 
-func (instance *Node) borrowFromBrother(brother *Node, currentIndex, parentIndex, brotherIndex int) {
+func (node *Node) borrowFromBrother(brother *Node, currentIndex, parentIndex, brotherIndex int) {
 	// 1. Move the key from parent node to self node
-	instance.Keys = insertInt(instance.Keys, currentIndex, instance.Parent.Keys[parentIndex])
-	instance.Keys[0]++
+	node.Keys = insertInt(node.Keys, currentIndex, node.Parent.Keys[parentIndex])
+	node.Keys[0]++
 
 	// 2. Move the key from brother node to parent node
-	instance.Parent.Keys[parentIndex] = brother.Keys[parentIndex]
+	node.Parent.Keys[parentIndex] = brother.Keys[parentIndex]
 	brother.Keys = append(brother.Keys[:parentIndex], brother.Keys[parentIndex+1:]...)
 	brother.Keys[0] --
 
 	// 3. Move the child from brother to current node
-	if instance.Children != nil {
+	if node.Children != nil {
 		if brotherIndex == -1 { // Borrow from left
-			instance.Children = insertNode(instance.Children, 0, brother.Children[len(brother.Children)-1])
+			node.Children = insertNode(node.Children, 0, brother.Children[len(brother.Children)-1])
 			brother.Children = brother.Children[:len(brother.Children)-1]
-			instance.Children[0].Parent = instance
-			for i := 0; i < instance.Keys[0]+1; i++ {
-				instance.Children[i].Index = i
+			node.Children[0].Parent = node
+			for i := 0; i < node.Keys[0]+1; i++ {
+				node.Children[i].Index = i
 			}
 		} else { // Borrow from right
-			instance.Children = append(instance.Children, brother.Children[0])
+			node.Children = append(node.Children, brother.Children[0])
 			brother.Children = brother.Children[1:len(brother.Children)]
-			instance.Children[len(instance.Children)-1].Parent = instance
-			instance.Children[len(instance.Children)-1].Index = instance.Keys[0]
+			node.Children[len(node.Children)-1].Parent = node
+			node.Children[len(node.Children)-1].Index = node.Keys[0]
 			for i := 0; i < brother.Keys[0]+1; i++ {
 				brother.Children[i].Index = i
 			}

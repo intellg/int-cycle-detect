@@ -6,57 +6,57 @@ type Tree struct {
 	Underflow int
 }
 
-func (instance *Tree) SetM(m int) {
+func (tree *Tree) SetM(m int) {
 	if m < 3 {
-		instance.M = 3
+		tree.M = 3
 	} else {
-		instance.M = m
+		tree.M = m
 	}
-	instance.Underflow = (m - 1) / 2
+	tree.Underflow = (m - 1) / 2
 }
 
-func (instance *Tree) SearchKey(key int, node *Node, deep int) (*Node, int, int, bool) {
+func (tree *Tree) SearchKey(key int, node *Node, deep int) (*Node, int, int, bool) {
 	deep += 1
 	if node == nil {
-		node = instance.Root
+		node = tree.Root
 	}
 
 	index, _, ok := node.SearchKey(key)
 	if ok || node.Children == nil { // find key or node is leaf
 		return node, index, deep, ok
 	}
-	return instance.SearchKey(key, node.Children[index], deep)
+	return tree.SearchKey(key, node.Children[index], deep)
 }
 
-func (instance *Tree) AddKey(key int) bool {
-	if instance.Root == nil {
-		instance.Root = &Node{}
-		instance.Root.SetKeys(key)
+func (tree *Tree) AddKey(key int) bool {
+	if tree.Root == nil {
+		tree.Root = &Node{}
+		tree.Root.SetKeys(key)
 		return true
 	}
 
-	if node, index, _, ok := instance.SearchKey(key, nil, 0); ok {
+	if node, index, _, ok := tree.SearchKey(key, nil, 0); ok {
 		return false // The key already existed. No further action.
 	} else {
-		node.AddKey(instance, index+1, key, nil)
+		node.AddKey(tree, index+1, key, nil)
 		return true
 	}
 }
 
-func (instance *Tree) DeleteKey(key int) bool {
-	if instance.Root == nil {
+func (tree *Tree) DeleteKey(key int) bool {
+	if tree.Root == nil {
 		return false
 	}
 
-	if node, index, _, ok := instance.SearchKey(key, nil, 0); ok {
-		node.DeleteKey(instance, index)
+	if node, index, _, ok := tree.SearchKey(key, nil, 0); ok {
+		node.DeleteKey(tree, index)
 		return true
 	} else {
 		return false // The key doesn't exist. No further action.
 	}
 }
 
-func (instance *Tree) validate(node *Node, step, deep int) bool {
+func (tree *Tree) validate(node *Node, step, deep int) bool {
 	step++
 
 	// The Keys[0] stores exact the count of the keys
@@ -71,12 +71,12 @@ func (instance *Tree) validate(node *Node, step, deep int) bool {
 				return false
 			}
 		} else {
-			if node.Keys[0] <= 0 || node.Keys[0] >= instance.M {
+			if node.Keys[0] <= 0 || node.Keys[0] >= tree.M {
 				return false
 			}
 		}
 	} else { // non-root node
-		if node.Keys[0] < instance.Underflow || node.Keys[0] >= instance.M {
+		if node.Keys[0] < tree.Underflow || node.Keys[0] >= tree.M {
 			return false
 		}
 	}
@@ -120,7 +120,7 @@ func (instance *Tree) validate(node *Node, step, deep int) bool {
 
 		// Traverse all nodes
 		for _, child := range node.Children {
-			return instance.validate(child, step, deep)
+			return tree.validate(child, step, deep)
 		}
 	}
 
