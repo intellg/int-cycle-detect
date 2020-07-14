@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from tree import Tree
+from .tree import Tree
 
 
 class TestTree(unittest.TestCase):
