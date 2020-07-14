@@ -29,7 +29,7 @@ func (tree *Tree) Insert(node *Node) {
 
 func (tree *Tree) fixupInsert(node *Node) {
 	for {
-		parent, grandparent, uncle, firstRotate, secondRotate, otherSide, ok := tree.getRelatedMaterial(node)
+		parent, grandparent, uncle, parentRotate, grandparentRotate, ok := tree.getRelatedMaterial(node)
 		if !ok || parent.Color != RED {
 			break
 		}
@@ -40,15 +40,16 @@ func (tree *Tree) fixupInsert(node *Node) {
 			grandparent.Color = RED
 			node = grandparent
 		} else {
-			if otherSide {
+			if parentRotate != nil { // node is different side as its parent
 				node = parent
-				firstRotate(node)
+				parentRotate(node)
 			}
 
 			node.Parent.Color = BLACK
-			if node.Parent.Parent != nil {
-				node.Parent.Parent.Color = RED
-				secondRotate(node.Parent.Parent)
+			grandparent = node.Parent.Parent
+			if grandparent != nil {
+				grandparent.Color = RED
+				grandparentRotate(grandparent)
 			}
 			break
 		}
@@ -137,7 +138,7 @@ func (tree *Tree) rightRotate(center *Node) {
 	center.Parent = moon
 }
 
-func (tree *Tree) getRelatedMaterial(node *Node) (parent, grandparent, uncle *Node, firstRotate, secondRotate func(*Node), otherSide, ok bool) {
+func (tree *Tree) getRelatedMaterial(node *Node) (parent, grandparent, uncle *Node, parentRotate, grandparentRotate func(*Node), ok bool) {
 	parent = node.Parent
 	if parent == nil {
 		return
@@ -149,18 +150,16 @@ func (tree *Tree) getRelatedMaterial(node *Node) (parent, grandparent, uncle *No
 
 	if parent == grandparent.Left {
 		uncle = grandparent.Right
-		firstRotate = tree.leftRotate
-		secondRotate = tree.rightRotate
 		if node == parent.Right {
-			otherSide = true
+			parentRotate = tree.leftRotate
 		}
-	} else {
+		grandparentRotate = tree.rightRotate
+	} else { // parent == grandparent.Right
 		uncle = grandparent.Left
-		firstRotate = tree.rightRotate
-		secondRotate = tree.leftRotate
 		if node == parent.Left {
-			otherSide = true
+			parentRotate = tree.rightRotate
 		}
+		grandparentRotate = tree.leftRotate
 	}
 
 	ok = true

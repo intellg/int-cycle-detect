@@ -68,16 +68,3 @@ func (node *Node) Predecessor() *Node {
 	}
 	return p
 }
-
-func (node *Node) getParentGrandparent() (parent, grandparent *Node, ok bool) {
-	parent = node.Parent
-	if parent == nil {
-		return
-	}
-	grandparent = parent.Parent
-	if grandparent == nil {
-		return
-	}
-	ok = true
-	return
-}
