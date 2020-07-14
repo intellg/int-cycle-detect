@@ -1,4 +1,4 @@
-package tree
+package search_tree
 
 type Node struct {
 	Key    int   `json:"key"`

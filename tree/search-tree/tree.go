@@ -1,4 +1,4 @@
-package tree
+package search_tree
 
 type Tree struct {
 	Root *Node
