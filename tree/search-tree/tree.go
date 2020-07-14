@@ -25,21 +25,21 @@ func (tree *Tree) Insert(node *Node) {
 	}
 }
 
-func (tree *Tree) Delete(n *Node) {
-	if n.Left == nil {
-		tree.Transplant(n, n.Right)
-	} else if n.Right == nil {
-		tree.Transplant(n, n.Left)
-	} else { // n has both left and right children
-		t := n.Right.Minimum()
-		if t.Parent != n {
-			tree.Transplant(t, t.Right)
-			t.Right = n.Right
-			t.Right.Parent = t
+func (tree *Tree) Delete(node *Node) {
+	if node.Left == nil {
+		tree.Transplant(node, node.Right)
+	} else if node.Right == nil {
+		tree.Transplant(node, node.Left)
+	} else { // node has both left and right children
+		rgtMin := node.Right.Minimum()
+		if rgtMin.Parent != node {
+			tree.Transplant(rgtMin, rgtMin.Right)
+			rgtMin.Right = node.Right
+			rgtMin.Right.Parent = rgtMin
 		}
-		tree.Transplant(n, t)
-		t.Left = n.Left
-		t.Left.Parent = t
+		tree.Transplant(node, rgtMin)
+		rgtMin.Left = node.Left
+		rgtMin.Left.Parent = rgtMin
 	}
 }
 

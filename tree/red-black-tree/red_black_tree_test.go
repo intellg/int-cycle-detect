@@ -10,17 +10,17 @@ import (
 )
 
 const (
-	length = 100000
+	length = 1000
 )
+
 func TestTree(t *testing.T) {
 	tr := &Tree{}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := 0; i < length; i++ {
 		node := &Node{Key: r.Intn(length << 6)}
 		tr.Insert(node)
+		tr.validate(t)
 	}
-
-	tr.validate(t)
 
 	outputJson(tr.Root, "red-black-tree.json")
 }

@@ -87,6 +87,7 @@ func (v *validator) enterNode(node *Node) {
 		v.black++
 	}
 }
+
 func (v *validator) leaveNode(node *Node) {
 	v.depth--
 	if node.Color == RED {
