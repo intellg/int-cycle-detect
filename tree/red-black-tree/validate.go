@@ -19,6 +19,9 @@ type validator struct {
 }
 
 func (tree *Tree) validate(t *testing.T) {
+	if tree.Root == nil {
+		return
+	}
 	if tree.Root.Color == RED {
 		t.Error("Invalid root color")
 	}

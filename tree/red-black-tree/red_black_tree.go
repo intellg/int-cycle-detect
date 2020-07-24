@@ -4,6 +4,10 @@ type Tree struct {
 	Root *Node
 }
 
+var (
+	nilNode = &Node{Key: -1, Color: BLACK}
+)
+
 func (tree *Tree) Insert(node *Node) {
 	var parent *Node
 	current := tree.Root
@@ -20,7 +24,7 @@ func (tree *Tree) Insert(node *Node) {
 		tree.Root = node
 	} else if node.Key < parent.Key {
 		parent.Left = node
-	} else { // if node.Key >= parent.Key
+	} else { // node.Key >= parent.Key
 		parent.Right = node
 	}
 	node.Color = RED
@@ -29,7 +33,7 @@ func (tree *Tree) Insert(node *Node) {
 
 func (tree *Tree) fixupInsert(node *Node) {
 	for {
-		parent, grandparent, uncle, parentRotate, grandparentRotate, ok := tree.getRelatedMaterial(node)
+		parent, grandparent, uncle, parentRotate, grandparentRotate, ok := tree.getInsertMaterial(node)
 		if !ok || parent.Color != RED {
 			break
 		}
@@ -46,7 +50,7 @@ func (tree *Tree) fixupInsert(node *Node) {
 			}
 
 			node.Parent.Color = BLACK
-			grandparent = node.Parent.Parent
+			grandparent := node.Parent.Parent
 			if grandparent != nil {
 				grandparent.Color = RED
 				grandparentRotate(grandparent)
@@ -62,28 +66,48 @@ func (tree *Tree) Delete(node *Node) {
 	originalColor := node.Color
 	if node.Left == nil {
 		fixupNode = node.Right
+		if fixupNode == nil {
+			fixupNode = nilNode
+			fixupNode.Parent = node
+			node.Right = fixupNode
+		}
 		tree.transplant(node, node.Right)
 	} else if node.Right == nil {
 		fixupNode = node.Left
+		if fixupNode == nil {
+			fixupNode = nilNode
+			fixupNode.Parent = node
+			node.Left = fixupNode
+		}
 		tree.transplant(node, node.Left)
 	} else { // node has both left and right children
-		rgtMin := node.Right.Minimum()
-		originalColor = rgtMin.Color
-		fixupNode = rgtMin.Right
-		if rgtMin.Parent == node {
-			fixupNode.Parent = rgtMin
-		} else {
-			tree.transplant(rgtMin, rgtMin.Right)
-			rgtMin.Right = node.Right
-			rgtMin.Right.Parent = rgtMin
+		replaceNode := node.Right.Minimum()
+		fixupNode = replaceNode.Right
+		originalColor = replaceNode.Color
+		if fixupNode == nil {
+			fixupNode = nilNode
+			fixupNode.Parent = replaceNode
+			replaceNode.Right = fixupNode
 		}
-		tree.transplant(node, rgtMin)
-		rgtMin.Left = node.Left
-		rgtMin.Left.Parent = rgtMin
-		rgtMin.Color = node.Color
+		if replaceNode.Parent != node {
+			tree.transplant(replaceNode, replaceNode.Right)
+			replaceNode.Right = node.Right
+			replaceNode.Right.Parent = replaceNode
+		}
+		tree.transplant(node, replaceNode)
+		replaceNode.Left = node.Left
+		replaceNode.Left.Parent = replaceNode
+		replaceNode.Color = node.Color
 	}
 	if originalColor == BLACK {
 		tree.fixupDelete(fixupNode)
+	}
+	if fixupNode == nilNode && fixupNode.Parent != nil {
+		if fixupNode == fixupNode.Parent.Left {
+			fixupNode.Parent.Left = nil
+		} else { // fixupNode == fixupNode.Parent.Right
+			fixupNode.Parent.Right = nil
+		}
 	}
 }
 
@@ -92,14 +116,91 @@ func (tree *Tree) transplant(from, to *Node) {
 		tree.Root = to
 	} else if from == from.Parent.Left {
 		from.Parent.Left = to
-	} else { // if from == from.Parent.Right
+	} else { // from == from.Parent.Right
 		from.Parent.Right = to
 	}
-	to.Parent = from.Parent
+	if to != nil {
+		to.Parent = from.Parent
+	}
 }
 
 func (tree *Tree) fixupDelete(node *Node) {
+	for node != tree.Root && node.Color == BLACK {
+		parent := node.Parent
+		var isNodeLeft bool
+		if node == parent.Left {
+			isNodeLeft = true
+		}
+		sibling := tree.getSibling(parent, isNodeLeft)
+		if sibling.Color == RED {
+			sibling.Color = BLACK
+			parent.Color = RED
+			tree.towardRotate(isNodeLeft)(parent)
+			sibling = tree.getSibling(parent, isNodeLeft) // original near nephew
+		}
+		nearNephew := tree.getNearNephew(sibling, isNodeLeft)
+		farNephew := tree.getFarNephew(sibling, isNodeLeft)
+		if (nearNephew == nil || nearNephew.Color == BLACK) && (farNephew == nil || farNephew.Color == BLACK) {
+			sibling.Color = RED
+			node = parent
+		} else {
+			if farNephew == nil || farNephew.Color == BLACK {
+				nearNephew.Color = BLACK
+				sibling.Color = RED
+				tree.forwardRotate(isNodeLeft)(sibling)
+				sibling = tree.getSibling(parent, isNodeLeft)
+			}
+			sibling.Color = parent.Color
+			parent.Color = BLACK
+			farNephew = tree.getFarNephew(sibling, isNodeLeft)
+			if farNephew != nil {
+				farNephew.Color = BLACK
+			}
+			tree.towardRotate(isNodeLeft)(parent)
+			break
+		}
+	}
+	node.Color = BLACK
+}
 
+func (tree *Tree) towardRotate(isNodeLeft bool) func(*Node) {
+	if isNodeLeft {
+		return tree.leftRotate
+	} else {
+		return tree.rightRotate
+	}
+}
+
+func (tree *Tree) forwardRotate(isNodeLeft bool) func(*Node) {
+	if isNodeLeft {
+		return tree.rightRotate
+	} else {
+		return tree.leftRotate
+	}
+}
+
+func (tree *Tree) getSibling(parent *Node, isNodeLeft bool) *Node {
+	if isNodeLeft {
+		return parent.Right
+	} else {
+		return parent.Left
+	}
+}
+
+func (tree *Tree) getNearNephew(sibling *Node, isNodeLeft bool) *Node {
+	if isNodeLeft {
+		return sibling.Left
+	} else {
+		return sibling.Right
+	}
+}
+
+func (tree *Tree) getFarNephew(sibling *Node, isNodeLeft bool) *Node {
+	if isNodeLeft {
+		return sibling.Right
+	} else {
+		return sibling.Left
+	}
 }
 
 func (tree *Tree) leftRotate(center *Node) {
@@ -113,7 +214,7 @@ func (tree *Tree) leftRotate(center *Node) {
 		tree.Root = moon
 	} else if center == center.Parent.Left {
 		center.Parent.Left = moon
-	} else { // if center == center.Parent.Right
+	} else { // center == center.Parent.Right
 		center.Parent.Right = moon
 	}
 	moon.Left = center
@@ -131,14 +232,14 @@ func (tree *Tree) rightRotate(center *Node) {
 		tree.Root = moon
 	} else if center == center.Parent.Right {
 		center.Parent.Right = moon
-	} else { // if center == center.Parent.Right
+	} else { // center == center.Parent.Right
 		center.Parent.Left = moon
 	}
 	moon.Right = center
 	center.Parent = moon
 }
 
-func (tree *Tree) getRelatedMaterial(node *Node) (parent, grandparent, uncle *Node, parentRotate, grandparentRotate func(*Node), ok bool) {
+func (tree *Tree) getInsertMaterial(node *Node) (parent, grandparent, uncle *Node, parentRotate, grandparentRotate func(*Node), ok bool) {
 	parent = node.Parent
 	if parent == nil {
 		return
