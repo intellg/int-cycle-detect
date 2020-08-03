@@ -1,243 +1,276 @@
 package b_tree
 
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+)
+
 type Node struct {
-	Index    int     `json:"index"`
 	Keys     []int   `json:"keys"`
-	Children []*Node `json:"children"`
-	Parent   *Node   `json:"-"`
+	Children []*Node `json:"children,omitempty"`
+	IsLeaf   bool    `json:"-"`
 }
 
-func (node *Node) SetKeys(keys ...int) {
-	node.Keys = make([]int, 1)
-	node.Keys[0] = len(keys)
-	node.Keys = append(node.Keys, keys...)
-}
-
-func (node *Node) SetChildren(children []*Node) {
-	node.Children = children
-	for i, child := range children {
-		child.Index = i
+func (node *Node) Search(key int) (*Node, int) {
+	i := 0
+	for i < len(node.Keys) && key > node.Keys[i] {
+		i++
+	}
+	if i < len(node.Keys) && key == node.Keys[i] {
+		return node, i
+	} else if node.IsLeaf {
+		return nil, -1
+	} else {
+		return node.Children[i].Search(key)
 	}
 }
 
-func (node *Node) GetLeftestLeafFrom(index int) *Node {
-	n := node.Children[index]
-	for n.Children != nil {
-		n = n.Children[0]
+func (node *Node) splitChild(index int) {
+	child := node.Children[index]
+	degree := (len(child.Keys) + 1) / 2
+	newChild := &Node{}
+	newChild.IsLeaf = child.IsLeaf
+
+	node.Keys = append(node.Keys, 0)
+	copy(node.Keys[index+1:], node.Keys[index:len(node.Keys)-1])
+	node.Keys[index] = child.Keys[degree-1]
+
+	node.Children = append(node.Children, nil)
+	copy(node.Children[index+2:], node.Children[index+1:len(node.Children)-1])
+	node.Children[index+1] = newChild
+
+	newChild.Keys = make([]int, degree-1)
+	for j := 0; j < degree-1; j++ {
+		newChild.Keys[j] = child.Keys[j+degree]
 	}
-	return n
+	child.Keys = child.Keys[:degree-1]
+
+	if !child.IsLeaf {
+		newChild.Children = make([]*Node, degree)
+		for j := 0; j < degree; j++ {
+			newChild.Children[j] = child.Children[j+degree]
+		}
+		child.Children = child.Children[:degree]
+	}
 }
 
-func (node *Node) SearchKey(key int) (index, step int, ok bool) {
-	end := len(node.Keys)
-	if end <= 1 {
-		index = 1
+func (node *Node) insert(degree, key int) {
+	if node.IsLeaf {
+		node.Keys = append(node.Keys, 0)
+		i := len(node.Keys) - 1
+		for i > 0 && key < node.Keys[i-1] {
+			node.Keys[i] = node.Keys[i-1]
+			i--
+		}
+		node.Keys[i] = key
+	} else {
+		i := len(node.Keys) - 1
+		for i >= 0 && key < node.Keys[i] {
+			i--
+		}
+		i++
+		if len(node.Children[i].Keys) == 2*degree-1 {
+			node.splitChild(i)
+			if key > node.Keys[i] {
+				i++
+			}
+		}
+		node.Children[i].insert(degree, key)
+	}
+}
+
+func (node *Node) mergeChild(index int) {
+	leftChild := node.Children[index]
+	rightChild := node.Children[index+1]
+	leftChild.Keys = append(append(leftChild.Keys, node.Keys[index]), rightChild.Keys...)
+	if !leftChild.IsLeaf {
+		leftChild.Children = append(leftChild.Children, rightChild.Children...)
+	}
+
+	for i := index; i < len(node.Keys)-1; i++ {
+		node.Keys[i] = node.Keys[i+1]
+	}
+	node.Keys = node.Keys[:len(node.Keys)-1]
+	for i := index + 1; i < len(node.Children)-1; i++ {
+		node.Children[i] = node.Children[i+1]
+	}
+	node.Children = node.Children[:len(node.Children)-1]
+}
+
+//        [6]            [4]
+//      ┌──┴──┐        ┌──┴──┐
+//    [2,4]  [8]  =>  [2]  [6,8]
+//    ┌─┼─┐ ┌─┴─┐    ┌─┴─┐ ┌─┼─┐
+//    1 3 5 7   9    1   3 5 7 9
+func (node *Node) borrowLeft(index int) {
+	currentChild := node.Children[index]
+	leftChild := node.Children[index-1]
+
+	// move parent's key to current child
+	currentChild.Keys = append(currentChild.Keys, 0)
+	copy(currentChild.Keys[1:], currentChild.Keys[0:])
+	currentChild.Keys[0] = node.Keys[index-1]
+	if !currentChild.IsLeaf {
+		// move sibling's nearest child to current child
+		currentChild.Children = append(currentChild.Children, nil)
+		copy(currentChild.Children[1:], currentChild.Children[0:])
+		currentChild.Children[0] = leftChild.Children[len(leftChild.Children)-1]
+	}
+
+	// move sibling's nearest key to node.key
+	node.Keys[index-1] = leftChild.Keys[len(leftChild.Keys)-1]
+
+	// shrink sibling
+	leftChild.Keys = leftChild.Keys[:len(leftChild.Keys)-1]
+	if !leftChild.IsLeaf {
+		leftChild.Children = leftChild.Children[:len(leftChild.Children)-1]
+	}
+}
+
+//        [4]            [6]
+//      ┌──┴──┐        ┌──┴──┐
+//     [2]  [6,8] => [2,4]  [8]
+//    ┌─┴─┐ ┌─┼─┐    ┌─┼─┐ ┌─┴─┐
+//    1   3 5 7 9    1 3 5 7   9
+func (node *Node) borrowRight(index int) {
+	currentChild := node.Children[index]
+	rightChild := node.Children[index+1]
+
+	// move parent's key to current child
+	currentChild.Keys = append(currentChild.Keys, node.Keys[index])
+	if !currentChild.IsLeaf {
+		// move sibling's nearest child to current child
+		currentChild.Children = append(currentChild.Children, rightChild.Children[0])
+	}
+
+	// move left child's last key to node.key
+	node.Keys[index] = rightChild.Keys[0]
+
+	// shrink left child
+	copy(rightChild.Keys, rightChild.Keys[1:])
+	rightChild.Keys = rightChild.Keys[:len(rightChild.Keys)-1]
+	if !rightChild.IsLeaf {
+		copy(rightChild.Children, rightChild.Children[1:])
+		rightChild.Children = rightChild.Children[:len(rightChild.Children)-1]
+	}
+}
+
+func (node *Node) delete(degree, key int) bool {
+	if node.IsLeaf {
+		for i := 0; i < len(node.Keys); i++ {
+			if key == node.Keys[i] {
+				copy(node.Keys[i:], node.Keys[i+1:])
+				node.Keys = node.Keys[:len(node.Keys)-1]
+				return true
+			} else if key < node.Keys[i] {
+				break
+			}
+		}
+		return false
+	} else {
+		var i int
+		for i = 0; i < len(node.Keys); i++ {
+			if key == node.Keys[i] {
+				leftChild := node.Children[i]
+				if len(leftChild.Keys) > degree-1 {
+					// borrow from left
+					predecessor := leftChild
+					for !predecessor.IsLeaf {
+						predecessor = predecessor.Children[len(predecessor.Children)-1]
+					}
+					node.Keys[i] = predecessor.Keys[len(predecessor.Keys)-1]
+					leftChild.delete(degree, node.Keys[i])
+				} else {
+					rightChild := node.Children[i+1]
+					if len(rightChild.Keys) > degree-1 {
+						// borrow from right
+						successor := rightChild
+						for !successor.IsLeaf {
+							successor = successor.Children[0]
+						}
+						node.Keys[i] = successor.Keys[0]
+						rightChild.delete(degree, node.Keys[i])
+					} else {
+						// merge children
+						node.mergeChild(i)
+						leftChild.delete(degree, key)
+					}
+				}
+				return true
+			} else if key < node.Keys[i] {
+				break
+			}
+		}
+
+		if len(node.Children[i].Keys) == degree-1 {
+			borrowed := false
+			if i > 0 {
+				if len(node.Children[i-1].Keys) > degree-1 {
+					node.borrowLeft(i)
+					borrowed = true
+				}
+			}
+			if !borrowed && i < len(node.Keys) {
+				if len(node.Children[i+1].Keys) > degree-1 {
+					node.borrowRight(i)
+					borrowed = true
+				}
+			}
+			if !borrowed {
+				if i != 0 && i == len(node.Children)-1 {
+					i--
+				}
+				node.mergeChild(i)
+			}
+		}
+
+		return node.Children[i].delete(degree, key)
+	}
+}
+
+func (node *Node) Validate(degree, parentDepth int, depthIn []int) (ok bool, depthOut []int) {
+	if len(node.Keys) == 0 ||
+		(!node.IsLeaf && len(node.Keys) != len(node.Children)-1) ||
+		len(node.Keys) < degree-1 || len(node.Keys) > degree*2-1 {
 		return
 	}
-	start := 1
-
-	var previousMid = 0.0
-	for true {
-		step++
-
-		mid := (float64(start) + float64(end)) / 2
-		index = int(mid)
-		if mid == previousMid {
-			if mid == float64(index) {
-				index--
-			}
+	for i := 1; i < len(node.Keys); i++ {
+		if node.Keys[i-1] > node.Keys[i] {
 			return
-		} else {
-			previousMid = mid
-		}
-
-		if key == node.Keys[index] {
-			ok = true
-			return
-		} else if key < node.Keys[index] {
-			end = index
-		} else { // if key > node.Keys[intMid]
-			start = index
 		}
 	}
-	return
-}
-
-func (node *Node) AddKey(tree *Tree, index, key int, child *Node) {
-	node.Keys = insertInt(node.Keys, index, key)
-	node.Keys[0] ++
-
-	if node.Children != nil {
-		for i := index; i < len(node.Children); i++ {
-			node.Children[i].Index++
-		}
-		node.Children = insertNode(node.Children, index, child)
-		child.Parent = node
-		child.Index = index
-	}
-
-	if node.Keys[0] == tree.M {
-		node.adjustOverflow(tree)
-	}
-}
-
-func (node *Node) adjustOverflow(tree *Tree) {
-	// 0. Prepare necessary data
-	mid := tree.M/2 + 1
-	newNode := &Node{}
-	newNode.SetKeys(node.Keys[mid+1:]...)
-	if node.Children != nil {
-		children := make([]*Node, tree.M-mid+1)
-		copy(children, node.Children[mid:])
-		newNode.SetChildren(children)
-	}
-
-	// 1. Handle parent node
-	if node.Parent != nil {
-		// Node node.Keys[mid] is upgraded
-		node.Parent.AddKey(tree, node.Index+1, node.Keys[mid], newNode)
+	if node.IsLeaf {
+		ok = true
+		depthOut = append(depthIn, parentDepth+1)
+		return
 	} else {
-		tree.Root = &Node{}
-		tree.Root.SetKeys(node.Keys[mid])
-		tree.Root.SetChildren([]*Node{node, newNode})
-		node.Parent = tree.Root
-		newNode.Parent = tree.Root
-	}
-
-	// 2. Handle new node
-	for _, child := range newNode.Children {
-		child.Parent = newNode
-	}
-
-	// 3. Handle node node
-	node.Keys = node.Keys[0:mid]
-	node.Keys[0] = mid - 1
-	if node.Children != nil {
-		node.Children = node.Children[0:mid]
-	}
-}
-
-func (node *Node) DeleteKey(tree *Tree, index int) {
-	deleteNode := node
-	deleteIndex := index
-
-	if node.Children != nil {
-		// Change the key with the right child's smallest key
-		rightChildSmallestLeaf := node.GetLeftestLeafFrom(index)
-		node.Keys[index] = rightChildSmallestLeaf.Keys[1]
-		deleteNode = rightChildSmallestLeaf
-		deleteIndex = 1
-	}
-
-	// Remove the key from the leaf node then adjust underflow if any
-	deleteNode.Keys = append(deleteNode.Keys[:deleteIndex], deleteNode.Keys[deleteIndex+1:]...)
-	deleteNode.Keys[0] --
-	if deleteNode.Keys[0] < tree.Underflow {
-		deleteNode.adjustUnderflow(tree)
-	}
-}
-
-func (node *Node) adjustUnderflow(tree *Tree) {
-	if node.Parent == nil {
-		if node.Keys[0] == 0 {
-			if node.Children != nil {
-				tree.Root = node.Children[0]
-				tree.Root.Index = -1
-				tree.Root.Parent = nil
+		depthOut = depthIn
+		for i := 0; i < len(node.Children); i++ {
+			ok = false
+			child := node.Children[i]
+			for j := 0; j < len(child.Keys); j++ {
+				if i > 0 && child.Keys[j] < node.Keys[i-1] {
+					return
+				}
+				if i < len(node.Children)-1 && child.Keys[j] > node.Keys[i] {
+					return
+				}
+			}
+			ok, depthOut = child.Validate(degree, parentDepth+1, depthOut)
+			if !ok {
+				return
 			}
 		}
-	}
-
-	// 0. Borrow from brother logic
-	leftNode := node
-	rightNode := node
-	if node.Index > 0 { // Try to borrow from left
-		leftNode = node.Parent.Children[node.Index-1]
-		if leftNode.Keys[0] > tree.Underflow {
-			node.borrowFromBrother(leftNode, 1, node.Index, -1)
-			return
-		}
-	} else { // Try to borrow from right
-		rightNode = node.Parent.Children[node.Index+1]
-		if rightNode.Keys[0] > tree.Underflow {
-			node.borrowFromBrother(rightNode, node.Keys[0]+1, node.Index+1, 1)
-			return
-		}
-	}
-
-	// 1. Combine right node into left node
-	// 1.1 Handle left node's children
-	if leftNode.Children != nil {
-		for _, child := range rightNode.Children {
-			leftNode.Children = append(leftNode.Children, child)
-			child.Parent = leftNode
-			child.Index += leftNode.Keys[0] + 1
-		}
-	}
-
-	// 1.2 Handle left node's keys
-	leftNode.Keys = append(leftNode.Keys, leftNode.Parent.Keys[rightNode.Index])
-	leftNode.Keys = append(leftNode.Keys, rightNode.Keys[1:]...)
-	leftNode.Keys[0] += rightNode.Keys[0] + 1
-
-	// 2. Handle parent node
-	// 2.1 Handle parent node's children
-	leftNode.Parent.Children = append(leftNode.Parent.Children[:rightNode.Index], leftNode.Parent.Children[rightNode.Index+1:]...)
-	if leftNode.Parent.Keys[0] > leftNode.Index {
-		for _, child := range leftNode.Parent.Children[rightNode.Index:] {
-			child.Index--
-		}
-	}
-
-	// 2.2 Handle parent node's keys
-	leftNode.Parent.Keys = append(leftNode.Parent.Keys[:rightNode.Index], leftNode.Parent.Keys[rightNode.Index+1:]...)
-	leftNode.Parent.Keys[0] --
-	if leftNode.Parent.Keys[0] < tree.Underflow {
-		leftNode.Parent.adjustUnderflow(tree)
+		return
 	}
 }
 
-func (node *Node) borrowFromBrother(brother *Node, currentIndex, parentIndex, brotherIndex int) {
-	// 1. Move the key from parent node to self node
-	node.Keys = insertInt(node.Keys, currentIndex, node.Parent.Keys[parentIndex])
-	node.Keys[0]++
-
-	// 2. Move the key from brother node to parent node
-	node.Parent.Keys[parentIndex] = brother.Keys[parentIndex]
-	brother.Keys = append(brother.Keys[:parentIndex], brother.Keys[parentIndex+1:]...)
-	brother.Keys[0] --
-
-	// 3. Move the child from brother to current node
-	if node.Children != nil {
-		if brotherIndex == -1 { // Borrow from left
-			node.Children = insertNode(node.Children, 0, brother.Children[len(brother.Children)-1])
-			brother.Children = brother.Children[:len(brother.Children)-1]
-			node.Children[0].Parent = node
-			for i := 0; i < node.Keys[0]+1; i++ {
-				node.Children[i].Index = i
-			}
-		} else { // Borrow from right
-			node.Children = append(node.Children, brother.Children[0])
-			brother.Children = brother.Children[1:len(brother.Children)]
-			node.Children[len(node.Children)-1].Parent = node
-			node.Children[len(node.Children)-1].Index = node.Keys[0]
-			for i := 0; i < brother.Keys[0]+1; i++ {
-				brother.Children[i].Index = i
-			}
-		}
+func (node *Node) OutputJson(fileName string) {
+	jsonContent, err := json.MarshalIndent(node, "", "    ")
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
-}
-
-func insertInt(arr []int, index, item int) []int {
-	arr = append(arr, 0)
-	copy(arr[index+1:], arr[index:])
-	arr[index] = item
-	return arr
-}
-
-func insertNode(arr []*Node, index int, item *Node) []*Node {
-	arr = append(arr, nil)
-	copy(arr[index+1:], arr[index:])
-	arr[index] = item
-	return arr
+	_ = ioutil.WriteFile(fileName, jsonContent, 0644)
 }

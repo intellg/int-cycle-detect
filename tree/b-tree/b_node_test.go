@@ -1,9 +1,6 @@
 package b_tree
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"testing"
 )
 
@@ -24,7 +21,7 @@ func TestSplitChild1(t *testing.T) {
 	root.Children[0] = node123
 
 	root.splitChild(0)
-	outputJson(root, "testSplitChild1.json")
+	root.OutputJson("testSplitChild1.json")
 }
 
 func TestSplitChild2(t *testing.T) {
@@ -44,55 +41,46 @@ func TestSplitChild2(t *testing.T) {
 	root.Children[1] = node111213
 
 	root.splitChild(1)
-	outputJson(root, "testSplitChild2.json")
+	root.OutputJson("testSplitChild2.json")
 }
 
 func TestBorrow(t *testing.T) {
 	n1 := &Node{
-		Keys: []int{1},
+		Keys:   []int{1},
 		IsLeaf: true,
 	}
 	n3 := &Node{
-		Keys: []int{3},
+		Keys:   []int{3},
 		IsLeaf: true,
 	}
 	n5 := &Node{
-		Keys: []int{5},
+		Keys:   []int{5},
 		IsLeaf: true,
 	}
 	n7 := &Node{
-		Keys: []int{7},
+		Keys:   []int{7},
 		IsLeaf: true,
 	}
 	n9 := &Node{
-		Keys: []int{9},
+		Keys:   []int{9},
 		IsLeaf: true,
 	}
 	left := &Node{
-		Keys: []int{2,4},
-		Children: []*Node{n1,n3,n5},
+		Keys:     []int{2, 4},
+		Children: []*Node{n1, n3, n5},
 	}
 	right := &Node{
-		Keys: []int{8},
-		Children: []*Node{n7,n9},
+		Keys:     []int{8},
+		Children: []*Node{n7, n9},
 	}
 	root := &Node{
-		Keys: []int{6},
+		Keys:     []int{6},
 		Children: []*Node{left, right},
 	}
 
-	outputJson(root, "beforeBorrow.json")
+	root.OutputJson("beforeBorrow.json")
 	root.borrowLeft(1)
-	outputJson(root, "borrowLeft.json")
+	root.OutputJson("borrowLeft.json")
 	root.borrowRight(0)
-	outputJson(root, "borrowRight.json")
-}
-
-func outputJson(root *Node, fileName string) {
-	jsonContent, err := json.MarshalIndent(root, "", "    ")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	_ = ioutil.WriteFile(fileName, jsonContent, 0644)
+	root.OutputJson("borrowRight.json")
 }

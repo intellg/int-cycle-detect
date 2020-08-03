@@ -1,92 +1,178 @@
 package b_tree
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 const (
-	maxM      = 20
-	testCount = 50
-	testRange = 1000
+	degree = 2
+	length = 10000
 )
 
-func TestInsertInt(t *testing.T) {
-	arr := []int{1, 2, 3, 4}
-	arr = insertInt(arr, 0, 0)
-	if arr[0] != 0 || len(arr) != 5 || arr[4] != 4 {
-		t.Error("Wrong")
-		return
-	}
-	arr = insertInt(arr, 4, 5)
-	if len(arr) != 6 || arr[4] != 5 || arr[5] != 4 {
-		t.Error("Wrong")
-		return
-	}
+func TestAll(t *testing.T) {
+	tree := &Tree{}
+	tree.Init(degree)
+	m := make(map[int]int, length)
 
-	arr = insertInt(arr, 6, 6)
-	if len(arr) != 7 || arr[6] != 6 {
-		t.Error("Wrong")
-		return
-	}
-	t.Log("Correct")
-}
-
-func TestTreeRandom(t *testing.T) {
-	for m := 3; m <= maxM; m++ {
-		tree := &Tree{}
-		tree.SetM(m)
-
-		// Construct b-tree
-		nodes := make(map[int]int, testCount)
-		nodeList := make([]int, 0)
-		for len(nodes) < testCount {
-			key := rand.Intn(testRange)
-
-			if ok := tree.AddKey(key); !ok {
-				continue
-			}
-			nodes[key] = 0
-			nodeList = append(nodeList, key)
-
-			// Test b-tree
-			t.Logf("# ======== test M = %d and round = %d ========", tree.M, len(nodes))
-			if tree.validate(tree.Root, 0, -1) {
-				t.Log("Valid")
-			} else {
-				t.Error("Invalid")
-			}
-
-			isFailed := false
-			for i := 1; i <= testRange; i++ {
-				if _, _, _, ok := tree.SearchKey(i, nil, 0); ok {
-					if _, ok = nodes[i]; !ok {
-						t.Errorf("%d should be found", i)
-						isFailed = true
-					}
-				} else {
-					if _, ok = nodes[i]; ok {
-						t.Errorf("%d should not be found", i)
-						isFailed = true
-					}
-				}
-			}
-			if isFailed {
-				t.Error(nodeList)
-				outputJson(tree.Root, fmt.Sprintf("nodes_%d_%d.json", tree.M, len(nodes)))
-			}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < length; i++ {
+		key := r.Intn(length << 6)
+		if _, ok := m[key]; ok {
+			i--
+			continue
+		}
+		m[key] = 0
+		t.Logf("%8d tree.Insert(%d)", i, key)
+		tree.Insert(key)
+		if !tree.Validate() {
+			t.Errorf("Wrong for insert %d", key)
+			tree.Root.OutputJson("testInsert.json")
+			return
 		}
 	}
+
+	i := 0
+	for key := range m {
+		t.Logf("%8d tree.Delete(%d)", i, key)
+		tree.Delete(key)
+		if !tree.Validate() {
+			t.Errorf("Wrong for delete %d", key)
+			tree.Root.OutputJson("testDelete.json")
+			return
+		}
+		i++
+	}
 }
 
-func outputJson(root *Node, fileName string) {
-	jsonContent, err := json.MarshalIndent(root, "", "    ")
-	if err != nil {
-		fmt.Println(err)
-		return
+func TestSpecific(t *testing.T) {
+	tree := &Tree{}
+	tree.Init(2)
+
+	tree.Insert(4620)
+	tree.Insert(5407)
+	tree.Insert(3799)
+	tree.Insert(2130)
+	tree.Insert(1570)
+	tree.Insert(1204)
+	tree.Insert(1064)
+	tree.Insert(2104)
+	tree.Insert(1920)
+	tree.Insert(209)
+	tree.Insert(6215)
+	tree.Insert(3377)
+	tree.Insert(6092)
+	tree.Insert(869)
+	tree.Insert(4144)
+	tree.Insert(5201)
+	tree.Insert(5855)
+	tree.Insert(512)
+	tree.Insert(854)
+	tree.Insert(1055)
+	tree.Insert(3612)
+	tree.Insert(1459)
+	tree.Insert(4891)
+	tree.Insert(4662)
+	tree.Insert(88)
+	tree.Insert(5161)
+	tree.Insert(9)
+	tree.Insert(87)
+	tree.Insert(728)
+	tree.Insert(4273)
+	tree.Insert(2233)
+	tree.Insert(2826)
+	tree.Insert(3073)
+	tree.Insert(1133)
+	tree.Insert(1363)
+	tree.Insert(3289)
+	tree.Insert(681)
+	tree.Insert(4443)
+	tree.Insert(5623)
+	tree.Insert(1231)
+	tree.Insert(4620)
+	tree.Insert(3359)
+	tree.Insert(3229)
+	tree.Insert(3071)
+	tree.Insert(5739)
+	tree.Insert(831)
+	tree.Insert(4001)
+	tree.Insert(374)
+	tree.Insert(1980)
+	tree.Insert(1215)
+	tree.Insert(3125)
+	tree.Insert(1327)
+	tree.Insert(3006)
+	tree.Insert(2292)
+	tree.Insert(3011)
+	tree.Insert(6062)
+	tree.Insert(1959)
+	tree.Insert(3181)
+	tree.Insert(5967)
+	tree.Insert(3198)
+	tree.Insert(5639)
+	tree.Insert(2536)
+	tree.Insert(5095)
+	tree.Insert(4744)
+	tree.Insert(5534)
+	tree.Insert(4966)
+	tree.Insert(1354)
+	tree.Insert(5179)
+	tree.Insert(1183)
+	tree.Insert(3603)
+	tree.Insert(2792)
+	tree.Insert(1396)
+	tree.Insert(4902)
+	tree.Insert(1262)
+	tree.Insert(6218)
+	tree.Insert(266)
+	tree.Insert(1367)
+	tree.Insert(1343)
+	tree.Insert(1994)
+	tree.Insert(508)
+	tree.Insert(1505)
+	tree.Insert(6217)
+	tree.Insert(3621)
+	tree.Insert(5149)
+	tree.Insert(4488)
+	tree.Insert(3328)
+	tree.Insert(6211)
+	tree.Insert(2587)
+	tree.Insert(5949)
+	tree.Insert(2213)
+	tree.Insert(6091)
+	tree.Insert(1773)
+	tree.Insert(6218)
+	tree.Insert(307)
+	tree.Insert(785)
+	tree.Insert(1626)
+	tree.Insert(5645)
+	tree.Insert(5002)
+	tree.Insert(1875)
+	tree.Insert(6310)
+	tree.Delete(5179)
+	tree.Delete(1204)
+	tree.Delete(1064)
+	tree.Delete(2104)
+	tree.Delete(2826)
+	tree.Delete(3125)
+	validate(t, tree)
+	tree.Delete(2292)
+	validate(t, tree)
+	tree.Delete(4966)
+	validate(t, tree)
+	tree.Delete(5949)
+	validate(t, tree)
+
+	tree.Root.OutputJson("TestSpecific0001.json")
+	tree.Delete(854)
+	tree.Root.OutputJson("TestSpecific0002.json")
+
+	validate(t, tree)
+}
+
+func validate(t *testing.T, tree *Tree) {
+	if !tree.Validate() {
+		t.Errorf("Wrong")
 	}
-	_ = ioutil.WriteFile(fileName, jsonContent, 0644)
 }
