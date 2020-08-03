@@ -10,6 +10,8 @@
 重华：有向图中检测环
 ## exchange
 重华：数组元素交换
+## floor-cup
+重华：扔盘子问题
 ## sort
 各种排序算法，以及benchmark
 ## tree
